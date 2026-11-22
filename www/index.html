@@ -116,7 +116,7 @@ tr.last td{font-weight:700;border-bottom:2px solid var(--brand)}
   </div>
  </div>
  <label class="check"><input type="checkbox" id="fri" checked> الجمعة عطلة أسبوعية</label>
- <label class="check"><input type="checkbox" id="shift" checked> تعويض العطلة الرسمية التي توافق الجمعة أو السبت بأول يوم عمل بعدها</label>
+ <label class="check"><input type="checkbox" id="shift" checked> تعويض العطلة الرسمية التي توافق الجمعة أو السبت بأول يوم عمل بعدها (الأحد، وليس السبت)</label>
  <p class="note">التعويض يتبع قرار مجلس الوزراء وديوان الخدمة المدنية في كل مرة، فإن اختلف القرار عن هذا الحساب ألغِ التحديد وأضف اليوم يدويًا من العطل الإضافية.</p>
 </div>
 
@@ -249,7 +249,7 @@ function calc(){
   for(let d=addDays(start,-14),n=0;n<bal*2+80;n++,d=addDays(d,1)){
    const b=baseName(d);
    if(b!==undefined){if(isRest(d))owed.push(b)}
-   else if(!isRest(d)&&owed.length)comp[iso(d)]='بدل '+owed.shift();
+   else if(!isRest(d)&&d.getUTCDay()!==6&&owed.length)comp[iso(d)]='بدل '+owed.shift();
   }
  }
  const holName=d=>{const b=baseName(d);return b!==undefined?b:comp[iso(d)]};
