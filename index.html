@@ -116,6 +116,8 @@ tr.last td{font-weight:700;border-bottom:2px solid var(--brand)}
   </div>
  </div>
  <label class="check"><input type="checkbox" id="fri" checked> الجمعة عطلة أسبوعية</label>
+ <label class="check"><input type="checkbox" id="shift" checked> تعويض العطلة الرسمية التي توافق الجمعة أو السبت بأول يوم عمل بعدها</label>
+ <p class="note">التعويض يتبع قرار مجلس الوزراء وديوان الخدمة المدنية في كل مرة، فإن اختلف القرار عن هذا الحساب ألغِ التحديد وأضف اليوم يدويًا من العطل الإضافية.</p>
 </div>
 
 <div class="card noprint">
@@ -208,7 +210,7 @@ let hols=defHols(), recs=[], info=null;
 
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
 
-function save(){try{localStorage.setItem(KEY,JSON.stringify({s:$('startDate').value,b:$('balance').value,sat:$('satMode').value,fri:$('fri').checked,h:hols,a:auto,e4:$('eid4').checked}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({s:$('startDate').value,b:$('balance').value,sat:$('satMode').value,fri:$('fri').checked,h:hols,a:auto,e4:$('eid4').checked,sh:$('shift').checked}))}catch(e){}}
 function load(){try{
  const o=JSON.parse(localStorage.getItem(KEY)||'null'); if(!o)return;
  if(parse(o.s))$('startDate').value=o.s;
@@ -216,6 +218,7 @@ function load(){try{
  if(o.sat==='rest'||o.sat==='work')$('satMode').value=o.sat;
  $('fri').checked=o.fri!==false;
  $('eid4').checked=!!o.e4;
+ $('shift').checked=o.sh!==false;
  if(o.a&&typeof o.a==='object')AUTO.forEach(x=>{if(typeof o.a[x.id]==='boolean')auto[x.id]=o.a[x.id]});
  if(Array.isArray(o.h))hols=o.h.filter(h=>h&&typeof h.d==='string'&&typeof h.n==='string');
 }catch(e){}}
@@ -238,8 +241,18 @@ function calc(){
  if(err){recs=[];info=null;return}
  const map={}; hols.forEach(h=>{if(parse(h.d)&&!map[h.d])map[h.d]=h.n.trim()||'عطلة'});
  const e4=$('eid4').checked;
- const holName=d=>{const k=iso(d);return map[k]!==undefined?map[k]:autoName(d,e4)};
+ const baseName=d=>{const k=iso(d);return map[k]!==undefined?map[k]:autoName(d,e4)};
  const isRest=d=>{const w=d.getUTCDay();return (w===5&&fri)||(w===6&&sat==='rest')};
+ const comp={};
+ if($('shift').checked){
+  const owed=[];
+  for(let d=addDays(start,-14),n=0;n<bal*2+80;n++,d=addDays(d,1)){
+   const b=baseName(d);
+   if(b!==undefined){if(isRest(d))owed.push(b)}
+   else if(!isRest(d)&&owed.length)comp[iso(d)]='بدل '+owed.shift();
+  }
+ }
+ const holName=d=>{const b=baseName(d);return b!==undefined?b:comp[iso(d)]};
  const cnt={l:0,f:0,s:0,o:0}; recs=[];
  let cur=start, rem=bal, i=0;
  while(rem>0&&i<2000){
@@ -273,7 +286,7 @@ function shiftBal(n){const v=parseInt($('balance').value,10)||0;$('balance').val
 
 $('dm').onclick=()=>shiftDate(-1); $('dp').onclick=()=>shiftDate(1);
 $('bm').onclick=()=>shiftBal(-1); $('bp').onclick=()=>shiftBal(1);
-['startDate','balance','satMode','fri'].forEach(id=>{$(id).addEventListener(id==='balance'?'input':'change',calc)});
+['startDate','balance','satMode','fri','shift'].forEach(id=>{$(id).addEventListener(id==='balance'?'input':'change',calc)});
 $('eid4').addEventListener('change',calc);
 $('autoList').addEventListener('change',e=>{const id=e.target.dataset.a;if(id){auto[id]=e.target.checked;calc()}});
 $('holList').addEventListener('change',e=>{const t=e.target;if(t.dataset.k&&hols[t.dataset.i]){hols[t.dataset.i][t.dataset.k]=t.value;if(t.dataset.k==='d')renderHols(true);calc()}});
