@@ -63,16 +63,36 @@ tr.last td{font-weight:700;border-bottom:2px solid var(--brand)}
 .auto{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}.auto .check{margin:8px 0}
 .credit{text-align:center;color:var(--muted);font-size:13px;margin:18px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
 .note{font-size:13px;color:var(--muted);margin:8px 2px 0}
+#printHead{display:none}
+@page{size:A4;margin:12mm 10mm}
 @media print{
- body{background:#fff;color:#000;padding:0;max-width:none}
- .noprint,#toast,.actions{display:none!important}
- .card,.sum>div{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+ :root:root:root{color-scheme:light;padding:0;--bg:#fff;--card:#fff;--ink:#111;--muted:#444;--brand:#0b5394;--on-brand:#fff;--line:#cfd8e3;--soft:#eef3fb;--leave:#fff;--rest:#e8f5e9;--off:#fff4d6}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ html,body{background:#fff!important;color:#111}
+ body{max-width:none;padding:0;font-size:11px}
+ h1,.noprint,#toast,.actions,#err{display:none!important}
+ #printHead{display:block;text-align:center;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid var(--brand)}
+ #printHead h2{margin:0;font-size:20px;color:var(--brand)}
+ #printMeta{font-size:11px;color:var(--muted);margin-top:3px}
+ .sum{grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}
+ .sum>div{padding:6px 4px;box-shadow:none;border:1px solid var(--line);border-top:3px solid var(--brand);border-radius:6px;break-inside:avoid}
+ .sum h3{font-size:14px;margin:2px 0}.sum small{font-size:10px}
+ .chips{margin-bottom:6px;gap:5px}.chips span,.chips b{font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:12px}.chips b{border:0;padding:2px 0}
+ .card{box-shadow:none;border:0;border-radius:0;padding:0!important;margin:0;background:none}
+ .tw{overflow:visible}
+ table{font-size:10.5px}
+ th{padding:4px;background:var(--brand);color:#fff}
+ td{padding:2px 4px;border-bottom:1px solid var(--line)}
  thead{display:table-header-group}tr{break-inside:avoid}
+ tr.last td{border-bottom:2px solid var(--brand)}
+ .legend{margin:8px 0 0;font-size:10.5px;break-inside:avoid}
+ .credit{margin:10px 0 0;padding-top:6px;font-size:11px;break-inside:avoid}
 }
 </style>
 </head>
 <body>
 <h1>حاسبة الإجازة</h1>
+<div id="printHead"><h2>حاسبة الإجازة</h2><div id="printMeta"></div></div>
 
 <div class="card noprint">
  <label for="startDate">📅 بداية الإجازة</label>
@@ -242,6 +262,7 @@ function calc(){
    <div><small>أول دوام</small><h3>${fmt(info.back)}</h3><small>${info.backWd}</small></div>
    <div><small>المدة الإجمالية</small><h3>${total} يوم</h3><small>${bal} من الرصيد + ${other} عطلة وراحة</small></div>`;
  $('breakdown').innerHTML=`<span>إجازة ${cnt.l}</span><span>جمعة ${cnt.f}</span><span>سبت ${cnt.s}</span><span>رسمية ${cnt.o}</span>`;
+ $('printMeta').textContent=`رصيد الإجازة: ${bal} يوم  |  الجمعة: ${fri?'عطلة أسبوعية':'تُحسب من الرصيد'}  |  السبت: ${sat==='rest'?'راحة':'عمل'}  |  تاريخ الإصدار: ${new Date().toLocaleDateString('en-GB')}`;
  const nm={};recs.forEach(r=>{if(r.cls==='off'){const n=r.type.replace('رسمية - ','');nm[n]=(nm[n]||0)+1}});
  $('holsIn').innerHTML=Object.keys(nm).length?'<b>عطل رسمية داخل إجازتك:</b>'+Object.entries(nm).map(([n,c])=>`<span>${esc(n)} × ${c}</span>`).join(''):'';
  $('tbody').innerHTML=recs.map((r,n)=>`<tr class="${r.cls}${n===recs.length-1?' last':''}"><td>${r.idx}</td><td>${fmt(r.iso)}</td><td>${r.wd}</td><td>${esc(r.type)}</td><td>${r.counted?'نعم':'لا'}</td><td>${r.rem}</td></tr>`).join('');
@@ -275,8 +296,16 @@ $('share').onclick=async()=>{
   await navigator.clipboard.writeText(text);toast('تم نسخ النتيجة');
  }catch(e){if(e&&e.name!=='AbortError')toast('تعذّرت المشاركة، انسخ النتيجة يدويًا')}
 };
-$('print').onclick=()=>window.print();
-$('pdf').onclick=()=>{toast('في نافذة الطباعة اختر «حفظ كـ PDF»');setTimeout(()=>window.print(),700)};
+function doPrint(){
+ if(!info)return;
+ const old=document.title;
+ document.title='إجازة '+info.first+' إلى '+info.last;
+ const back=()=>{document.title=old;window.removeEventListener('afterprint',back)};
+ window.addEventListener('afterprint',back);
+ window.print();
+}
+$('print').onclick=doPrint;
+$('pdf').onclick=()=>{toast('في نافذة الطباعة اختر «حفظ كـ PDF»');setTimeout(doPrint,700)};
 
 load(); renderHols(true); calc();
 
